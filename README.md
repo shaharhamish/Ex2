@@ -9,4 +9,4 @@ This project focuses on building a basic version of a
 ### Class Diagram: Cell and Spreadsheet
 
 The following diagram shows the relationship between the `Cell` class and the `Spreadsheet` class.
-![Screenshot_20241226_153658_Samsung Notes.jpg](Screenshot_20241226_153658_Samsung%20Notes.jpg)
+<img src="C:\Users\Hamish\IdeaProjects\Ex2\Screenshot_20241226_153658_Samsung Notes.jpg" alt="Sample Image" width="400" height="300">
