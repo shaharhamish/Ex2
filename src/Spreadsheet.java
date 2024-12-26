@@ -41,4 +41,21 @@ public class Spreadsheet {
         }
         return "ERR";
     }
+
+    // Evaluates all cells in the spreadsheet and returns their values as a 2D array.
+    public String[][] evalAll() {
+        int w = width(), h = height();
+        String[][] result = new String[w][h];
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                result[i][j] = eval(i, j); // Evaluate each cell.
+            }
+        }
+        return result;
+    }
+
+    // Calculates the computational depth of each cell (not implemented yet).
+    public int[][] depth() {
+        return new int[width()][height()];
+    }
 }
