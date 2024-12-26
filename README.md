@@ -6,9 +6,7 @@ This project focuses on building a basic version of a
 - Recursive problem solving.
 - Algorithmic thinking for dependencies and cycles.
 
-#### TO begin we have 2 department Cell and Sprreadsheet that connent to each other like that
-## Class Diagram: Cell and Spreadsheet
+### Class Diagram: Cell and Spreadsheet
 
 The following diagram shows the relationship between the `Cell` class and the `Spreadsheet` class.
-
-+-------------------+ +-------------------------+ | Cell | | Spreadsheet | |-------------------| |-------------------------| | - value: String | | - cells: Cell[][] | |-------------------| |-------------------------| | + isNumber(text) | | + get(x, y): Cell | | + isText(text) | | + set(x, y, Cell c) | | + isForm(text) | | + width(): int | | + computeForm(text)| | + height(): int | +-------------------+ | + xCell(c): int | ^ | + yCell(c): int | | | + eval(x, y): String | | | + evalAll(): String[][] | | | + depth(): int[][] | +---------------------+-------------------------+ (contains) (contains)
+![Screenshot_20241226_153658_Samsung Notes.jpg](Screenshot_20241226_153658_Samsung%20Notes.jpg)
