@@ -5,6 +5,17 @@ public class Cell {
         this.value = value;
     }
 
+    public boolean isNumber(String text) {
+        boolean ans;
+        try {
+            Double.parseDouble(text);
+            ans = true;
+        } catch (NumberFormatException e) {
+            ans = false;
+        }
+        return ans;
+    }
+
     public String getValue() {
         return value;
     }
