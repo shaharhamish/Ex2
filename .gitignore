@@ -17,6 +17,7 @@ bin/
 .idea
 Ex2.iml
 src/Main.java
+Ex2Sol_obf.jar
 
 ### NetBeans ###
 /nbproject/private/
