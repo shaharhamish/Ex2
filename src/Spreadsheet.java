@@ -9,4 +9,20 @@ public class Spreadsheet {
             }
         }
     }
+    //Set function for spreadsheet
+    public void set(int x, int y, Cell cell) {
+        cells[x][y] = cell;
+    }
+    //Get function for spreadsheet
+    public Cell get(int x, int y) {
+        return cells[x][y];
+    }
+    //get width
+    public int width() {
+        return cells.length;
+    }
+    //get height
+    public int height() {
+        return cells[0].length;
+    }
 }
