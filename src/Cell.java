@@ -3,10 +3,12 @@ import java.util.*;
 public class Cell {
     private String value;
 
+    // Constructor: Initializes the cell's content.
     public Cell(String value) {
         this.value = value;
     }
 
+    // Determines if the given text is a valid number (integer or double).
     public boolean isNumber(String text) {
         boolean ans;
         try {
@@ -17,10 +19,13 @@ public class Cell {
         }
         return ans;
     }
+
+    // Determines if the given text is valid as plain text (neither a number nor a formula).
     public boolean isText(String text) {
         return !isNumber(text) && !isForm(text);
     }
 
+    // Checks if the text represents a valid formula starting with '='.
     public boolean isForm(String text) {
         if (!text.startsWith("=")) return false;
         String formula = text.substring(1);
@@ -32,6 +37,7 @@ public class Cell {
         }
     }
 
+    // Computes the value of a formula, assuming it is valid.
     public Double computeForm(String form) {
         try {
             // A very basic implementation using the built-in JavaScript engine.
@@ -42,6 +48,8 @@ public class Cell {
             throw new IllegalArgumentException("Invalid formula");
         }
     }
+
+    // Evaluates a mathematical expression using stacks for numbers and operators.
     private Double eval(String expression) {
         // Simple evaluation for the sake of demonstration (can be replaced with a parser)
         Stack<Double> numbers = new Stack<>();
@@ -73,10 +81,12 @@ public class Cell {
         return numbers.pop();
     }
 
+    // Determines the precedence of an operator. Higher value indicates higher precedence.
     private int precedence(char op) {
         return (op == '+' || op == '-') ? 1 : (op == '*' || op == '/') ? 2 : 0;
     }
 
+    // Applies an operator to two operands and returns the result.
     private double applyOperator(char op, double b, double a) {
         return switch (op) {
             case '+' -> a + b;
@@ -87,11 +97,12 @@ public class Cell {
         };
     }
 
-
+    // Getter for the value of the cell.
     public String getValue() {
         return value;
     }
 
+    //Setter for the value of the cell.
     public void setValue(String value) {
         this.value = value;
     }
