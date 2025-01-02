@@ -1,54 +1,68 @@
-package assignments.ex2;
-// Add your documentation below:
+package assignments.ex2.src.ex2;
 
 public class SCell implements Cell {
     private String line;
-    private int type;
-    // Add your code here
+    private int type;  // Cell type (0 = Text, 1 = Number, 2 = Formula)
 
     public SCell(String s) {
-        // Add your code here
-        setData(s);
+        setData(s);  // Initialize the cell with data (formula, number, or text)
     }
 
     @Override
     public int getOrder() {
-        // Add your code here
-
-        return 0;
-        // ///////////////////
+        return 0; // For simplicity, return 0 (no custom ordering logic required)
     }
 
-    //@Override
     @Override
     public String toString() {
-        return getData();
+        return getData(); // Return string representation of the cell
     }
 
     @Override
-public void setData(String s) {
-        // Add your code here
-        line = s;
-        /////////////////////
+    public void setData(String s) {
+        line = s;  // Set the data
+        determineType(); // Determine the type based on the data
     }
+
     @Override
     public String getData() {
-        return line;
+        return line;  // Return the cell's data as a string
     }
 
     @Override
     public int getType() {
-        return type;
+        return type;  // Return the type (Text, Number, Formula)
     }
 
     @Override
     public void setType(int t) {
-        type = t;
+        type = t;  // Set the type of the cell (Text, Number, Formula)
     }
 
     @Override
     public void setOrder(int t) {
-        // Add your code here
+        // Not needed for now, but we could implement ordering if required
+    }
 
+    // Method to determine the type of the cell: Text, Number, or Formula
+    private void determineType() {
+        if (line.startsWith("=")) {
+            type = 2; // Formula
+        } else if (isNumber(line)) {
+            type = 1; // Number
+        } else {
+            type = 0; // Text
+        }
+    }
+
+    // Utility method to check if a string is a valid number
+    private boolean isNumber(String str) {
+        try {
+            Double.parseDouble(str);  // Try parsing it as a number
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
+
