@@ -258,43 +258,26 @@ public class Ex2Sheet implements Sheet {
         BufferedReader reader = new BufferedReader(new FileReader(fileName));
 
         // Temporary variables to calculate dimensions and store data
-        int rows = 0;
-        int cols = 0;
         String line;
+        int rowIndex = 0;
 
-        // First pass: Calculate the number of rows and columns
-        while ((line = reader.readLine()) != null) {
-            rows++;
-            int currentCols = line.split(",").length;
-            if (currentCols > cols) {
-                cols = currentCols;
-            }
-        }
-        reader.close();
-
-        // Resize the table based on the calculated dimensions
-        table = new SCell[rows][cols];
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                table[i][j] = new SCell(""); // Initialize cells to empty
-            }
-        }
-
-        // Second pass: Populate the table with data from the file
-        reader = new BufferedReader(new FileReader(fileName));
-        int row = 0;
+        // Initialize the table dimensions based on the file structure
         while ((line = reader.readLine()) != null) {
             String[] cells = line.split(",");
-            for (int col = 0; col < cells.length; col++) {
-                table[row][col] = new SCell(cells[col]); // Set cell content
+            for (int colIndex = 0; colIndex < cells.length; colIndex++) {
+                if (table[rowIndex][colIndex] == null) {
+                    table[rowIndex][colIndex] = new SCell(cells[colIndex].trim());
+                } else {
+                    table[rowIndex][colIndex].setData(cells[colIndex].trim());
+                }
             }
-            row++;
+            rowIndex++;
         }
-        reader.close();
 
-        // Evaluate the entire sheet after loading
-        eval();
+        reader.close();
+        eval(); // Re-evaluate the sheet after loading new data
     }
+
 
 
     /**

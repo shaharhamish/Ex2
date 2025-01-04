@@ -17,6 +17,7 @@ public class SCell implements Cell {
     /**
      * Constructs a new SCell with the given data.
      * Default type is TEXT.
+     *
      * @param data The data to store in the cell.
      */
     public SCell(String data) {
@@ -31,8 +32,40 @@ public class SCell implements Cell {
 
     @Override
     public void setData(String data) {
-        this.data = data;
+        this.data = data.trim();
         this.isEvaluated = false; // Reset evaluation flag when data changes
+
+        // Check if the data is a valid formula
+        if (data.startsWith("=")) {
+            if (isValidFormula(data)) {
+                this.type = Ex2Utils.FORM; // Use Ex2Utils.FORM constant for formulas
+            } else {
+                this.type = Ex2Utils.ERR_FORM_FORMAT; // Use Ex2Utils.ERR_FORM_FORMAT constant for invalid formulas
+            }
+        } else {
+            try {
+                Double.parseDouble(data); // Try parsing as a number
+                this.type = Ex2Utils.NUMBER; // Use Ex2Utils.NUMBER constant for numeric cells
+            } catch (NumberFormatException e) {
+                this.type = Ex2Utils.TEXT; // Use Ex2Utils.TEXT constant for text cells
+            }
+        }
+    }
+
+    /**
+     * Checks if the given data string is a valid formula.
+     * Valid formulas start with '=' and follow the correct format.
+     *
+     * @param formula The formula string.
+     * @return true if the formula is valid, false otherwise.
+     */
+    private boolean isValidFormula(String formula) {
+        // Use regex to validate formulas. Adjust based on the allowed formats.
+        // Example: formula can be a number, a formula enclosed in parentheses, or a valid operation.
+        return formula.matches("^=[0-9]+(\\.[0-9]+)?$") // Number like =1, =1.2
+                || formula.matches("^=\\([A-Za-z0-9+\\-*/() ]+\\)$") // Parentheses enclosed formula
+                || formula.matches("^=[A-Za-z]+[0-9]+$") // Simple cell reference like =A1, =B2
+                || formula.matches("^=[A-Za-z]+[0-9]+[\\+\\-\\*/][A-Za-z]+[0-9]+$");// Formula operations like =A1+B2
     }
 
     @Override
@@ -57,7 +90,8 @@ public class SCell implements Cell {
 
     /**
      * Evaluates the cell's value. Handles formulas recursively, detecting circular references.
-     * @param sheet The spreadsheet containing the cell.
+     *
+     * @param sheet           The spreadsheet containing the cell.
      * @param evaluationStack Tracks visited cells to detect cycles.
      */
     public void evaluate(Ex2Sheet sheet, Set<String> evaluationStack) {
@@ -86,8 +120,9 @@ public class SCell implements Cell {
 
     /**
      * Evaluates a formula, handling both arithmetic and cell references.
-     * @param sheet The spreadsheet containing the cell.
-     * @param formula The formula string to evaluate (without the leading '=').
+     *
+     * @param sheet           The spreadsheet containing the cell.
+     * @param formula         The formula string to evaluate (without the leading '=').
      * @param evaluationStack Tracks visited cells to detect cycles.
      * @return The result of the formula evaluation.
      */
@@ -129,9 +164,10 @@ public class SCell implements Cell {
 
     /**
      * Processes a single token in a formula.
-     * @param sheet The spreadsheet containing the cell.
-     * @param token The token to process (either a number or a cell reference).
-     * @param operator The operator to apply.
+     *
+     * @param sheet           The spreadsheet containing the cell.
+     * @param token           The token to process (either a number or a cell reference).
+     * @param operator        The operator to apply.
      * @param evaluationStack Tracks visited cells to detect cycles.
      * @return The result of applying the operator to the token.
      */
@@ -156,6 +192,7 @@ public class SCell implements Cell {
 
     /**
      * Evaluates a basic arithmetic expression (supports +, -, *, /).
+     *
      * @param formula The arithmetic formula string.
      * @return The result of the expression.
      */
@@ -180,23 +217,30 @@ public class SCell implements Cell {
 
     /**
      * Applies an operator to the current value and a new value.
-     * @param current The current value.
-     * @param value The new value.
+     *
+     * @param current  The current value.
+     * @param value    The new value.
      * @param operator The operator to apply (+, -, *, /).
      * @return The result of applying the operator.
      */
     private double applyOperator(double current, double value, String operator) {
         switch (operator) {
-            case "+": return current + value;
-            case "-": return current - value;
-            case "*": return current * value;
-            case "/": return current / value;
-            default: return current;
+            case "+":
+                return current + value;
+            case "-":
+                return current - value;
+            case "*":
+                return current * value;
+            case "/":
+                return current / value;
+            default:
+                return current;
         }
     }
 
     /**
      * Gets the computed value of the cell (after evaluation).
+     *
      * @return The computed value, or null if evaluation failed.
      */
     public Double getComputedValue() {
@@ -211,4 +255,5 @@ public class SCell implements Cell {
             return data;
         }
     }
+
 }
