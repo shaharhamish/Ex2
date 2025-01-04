@@ -1,6 +1,6 @@
 package assignments.ex2.src.ex2;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -244,23 +244,85 @@ public class Ex2Sheet implements Sheet {
 
     /**
      * Loads the spreadsheet content from a file.
+     * The file format is expected to have each row as a line, with cell contents separated by commas.
+     * Example:
+     * A1,A2,A3
+     * B1,B2,B3
      *
      * @param fileName The name of the file to load.
      * @throws IOException If an error occurs during file loading.
      */
     @Override
     public void load(String fileName) throws IOException {
-        // Implement loading from file
+        // Open the file using a BufferedReader
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+
+        // Temporary variables to calculate dimensions and store data
+        int rows = 0;
+        int cols = 0;
+        String line;
+
+        // First pass: Calculate the number of rows and columns
+        while ((line = reader.readLine()) != null) {
+            rows++;
+            int currentCols = line.split(",").length;
+            if (currentCols > cols) {
+                cols = currentCols;
+            }
+        }
+        reader.close();
+
+        // Resize the table based on the calculated dimensions
+        table = new SCell[rows][cols];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                table[i][j] = new SCell(""); // Initialize cells to empty
+            }
+        }
+
+        // Second pass: Populate the table with data from the file
+        reader = new BufferedReader(new FileReader(fileName));
+        int row = 0;
+        while ((line = reader.readLine()) != null) {
+            String[] cells = line.split(",");
+            for (int col = 0; col < cells.length; col++) {
+                table[row][col] = new SCell(cells[col]); // Set cell content
+            }
+            row++;
+        }
+        reader.close();
+
+        // Evaluate the entire sheet after loading
+        eval();
     }
+
 
     /**
      * Saves the spreadsheet content to a file.
+     * The file will contain each row of the spreadsheet on a new line,
+     * with cell contents separated by commas.
      *
      * @param fileName The name of the file to save.
      * @throws IOException If an error occurs during file saving.
      */
     @Override
     public void save(String fileName) throws IOException {
-        // Implement saving to file
+        // Create a BufferedWriter to write to the file
+        BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+
+        // Iterate through the table and write each cell's data to the file
+        for (int i = 0; i < height(); i++) {
+            for (int j = 0; j < width(); j++) {
+                writer.write(get(i, j).toString()); // Write cell data
+                if (j < width() - 1) {
+                    writer.write(","); // Add a comma except for the last cell in the row
+                }
+            }
+            writer.newLine(); // Move to the next line after each row
+        }
+
+        // Close the writer to ensure the file is saved
+        writer.close();
     }
+
 }
