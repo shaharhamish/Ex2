@@ -2,9 +2,6 @@ package assignments.ex2.src.ex2;
 
 import java.util.Set;
 
-/**
- * SCell represents a cell that can store text, numbers, or formulas.
- */
 public class SCell implements Cell {
     private String line;
     private int type;
@@ -82,7 +79,7 @@ public class SCell implements Cell {
      * Evaluates a formula, handling both arithmetic and cell references.
      *
      * @param sheet           The spreadsheet containing the cell.
-     * @param formula         The formula string to evaluate (without the leading '=').
+     * @param formula         The formula string to evaluate (without the leading '=' symbol).
      * @param evaluationStack Tracks visited cells to detect cycles.
      * @return The result of the formula evaluation.
      */
@@ -116,6 +113,8 @@ public class SCell implements Cell {
             if (refCell != null && refCell instanceof SCell) {
                 ((SCell) refCell).evaluate(sheet, evaluationStack); // Evaluate the referenced cell
                 result = applyOperation(result, ((SCell) refCell).getComputedValue(), operator);
+            } else {
+                throw new IllegalArgumentException("Invalid or empty referenced cell: " + token);
             }
         } else {
             try {
@@ -152,7 +151,6 @@ public class SCell implements Cell {
         }
         return result;
     }
-
 
     /**
      * Computes the result of a formula.
@@ -199,7 +197,6 @@ public class SCell implements Cell {
 
         return result;
     }
-
 
     /**
      * Applies the given operation to two operands.

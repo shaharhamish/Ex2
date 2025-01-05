@@ -15,10 +15,10 @@ public class Ex2Sheet implements Sheet {
         table = new SCell[x][y];
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                table[i][j] = new SCell("");
+                table[i][j] = new SCell(""); // Initialize with empty SCell
             }
         }
-        eval();
+        eval(); // Evaluate all cells
     }
 
     // Default constructor
@@ -41,6 +41,7 @@ public class Ex2Sheet implements Sheet {
         return table[x][y];
     }
 
+    // Overloaded get method to handle cell references like "A1", "B2"
     public Cell get(String cords) {
         if (cords == null || !cords.matches("[A-Za-z]+[0-9]+")) {
             return null; // Invalid reference
@@ -70,17 +71,16 @@ public class Ex2Sheet implements Sheet {
     public void set(int x, int y, String s) {
         Cell c = new SCell(s);
         table[x][y] = c;
-        eval();
+        eval(); // Re-evaluate after setting a new cell value
     }
 
     @Override
     public void eval() {
         Set<String> evaluationStack = new HashSet<>();
-
         for (int i = 0; i < table.length; i++) {
             for (int j = 0; j < table[i].length; j++) {
                 if (table[i][j] instanceof SCell) {
-                    ((SCell) table[i][j]).evaluate(this, evaluationStack);
+                    ((SCell) table[i][j]).evaluate(this, evaluationStack); // Evaluate each SCell
                 }
             }
         }
