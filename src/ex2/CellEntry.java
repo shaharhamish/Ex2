@@ -1,39 +1,45 @@
 package assignments.ex2.src.ex2;
 
 /**
- * Represents an entry in a spreadsheet cell with associated data and its position (x, y).
- * Implements the Index2D interface for working with 2D indices.
+ * CellEntry represents a 2D coordinate in a spreadsheet.
  */
 public class CellEntry implements Index2D {
-    private String data; // The content of the cell (formula, number, or text)
-    private int x, y;    // The coordinates of the cell
+    private int x;
+    private int y;
 
     /**
-     * Constructs a CellEntry with given data and coordinates.
+     * Constructor to create a CellEntry with the given coordinates.
      *
-     * @param data The content of the cell.
-     * @param x    The x-coordinate of the cell.
-     * @param y    The y-coordinate of the cell.
+     * @param x The x-coordinate (column index).
+     * @param y The y-coordinate (row index).
      */
-    public CellEntry(String data, int x, int y) {
-        this.data = data;
+    public CellEntry(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
     /**
-     * Checks if the cell is valid.
-     * A cell is considered valid if its data is not empty.
+     * Converts the CellEntry to a human-readable string (e.g., "A1").
      *
-     * @return true if the cell has non-empty data, false otherwise.
+     * @return The string representation of the cell.
      */
     @Override
-    public boolean isValid() {
-        return !data.isEmpty();
+    public String toString() {
+        return convertToCellNotation(x, y);
     }
 
     /**
-     * Returns the x-coordinate of the cell.
+     * Checks if the CellEntry is valid (non-negative coordinates).
+     *
+     * @return True if valid; otherwise, false.
+     */
+    @Override
+    public boolean isValid() {
+        return x >= 0 && y >= 0;
+    }
+
+    /**
+     * Gets the x-coordinate.
      *
      * @return The x-coordinate.
      */
@@ -43,7 +49,7 @@ public class CellEntry implements Index2D {
     }
 
     /**
-     * Returns the y-coordinate of the cell.
+     * Gets the y-coordinate.
      *
      * @return The y-coordinate.
      */
@@ -53,20 +59,56 @@ public class CellEntry implements Index2D {
     }
 
     /**
-     * Returns the data stored in the cell.
+     * Parses a cell notation (e.g., "A1") into CellEntry coordinates.
      *
-     * @return The cell's content (formula, number, or text).
+     * @param cellNotation The string representation of the cell.
+     * @return The CellEntry with parsed coordinates.
+     * @throws IllegalArgumentException If the cell notation is invalid.
      */
-    public String getData() {
-        return data;
+    public static CellEntry fromString(String cellNotation) {
+        if (cellNotation == null || !cellNotation.matches("[A-Za-z]+[0-9]+")) {
+            throw new IllegalArgumentException("Invalid cell notation: " + cellNotation);
+        }
+
+        String columnPart = cellNotation.replaceAll("[0-9]", "").toUpperCase();
+        String rowPart = cellNotation.replaceAll("[A-Za-z]", "");
+
+        int column = convertColumn(columnPart);
+        int row = Integer.parseInt(rowPart) - 1;
+
+        return new CellEntry(column, row);
     }
 
     /**
-     * Updates the data of the cell.
+     * Converts column letters (e.g., "A", "Z", "AA") into a zero-based column index.
      *
-     * @param data The new content to be stored in the cell.
+     * @param columnLetters The column letters.
+     * @return The zero-based column index.
      */
-    public void setData(String data) {
-        this.data = data;
+    private static int convertColumn(String columnLetters) {
+        int column = 0;
+        for (char c : columnLetters.toCharArray()) {
+            column = column * 26 + (c - 'A' + 1);
+        }
+        return column - 1; // Zero-based index
+    }
+
+    /**
+     * Converts zero-based coordinates into cell notation (e.g., (0, 0) -> "A1").
+     *
+     * @param x The zero-based column index.
+     * @param y The zero-based row index.
+     * @return The string representation of the cell.
+     */
+    private static String convertToCellNotation(int x, int y) {
+        StringBuilder column = new StringBuilder();
+
+        int columnIndex = x;
+        while (columnIndex >= 0) {
+            column.insert(0, (char) ('A' + (columnIndex % 26)));
+            columnIndex = columnIndex / 26 - 1;
+        }
+
+        return column.toString() + (y + 1);
     }
 }

@@ -1,71 +1,38 @@
 package assignments.ex2.src.ex2;
 
-import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Represents a single cell in the spreadsheet.
- * Supports formulas, numbers, and text. Handles evaluation and type detection.
+ * SCell represents a cell that can store text, numbers, or formulas.
  */
 public class SCell implements Cell {
-    private String data; // The raw data stored in the cell (text, number, or formula)
-    private int type; // The type of the cell (e.g., TEXT, NUMBER, FORMULA)
+    private String line;
+    private int type;
+    private double computedValue;
     private boolean isEvaluated = false; // Flag to indicate if the cell has been evaluated
-    private Double computedValue = null; // The result of evaluating the cell (if applicable)
-    private int order = 0; // The order of dependency (for formulas referencing other cells)
 
-    /**
-     * Constructs a new SCell with the given data.
-     * Default type is TEXT.
-     *
-     * @param data The data to store in the cell.
-     */
-    public SCell(String data) {
-        this.data = data;
-        this.type = Ex2Utils.TEXT; // Default type is TEXT
+    public SCell(String s) {
+        setData(s);
     }
 
     @Override
-    public String getData() {
-        return data;
-    }
-
-    @Override
-    public void setData(String data) {
-        this.data = data.trim();
-        this.isEvaluated = false; // Reset evaluation flag when data changes
-
-        // Check if the data is a valid formula
-        if (data.startsWith("=")) {
-            if (isValidFormula(data)) {
-                this.type = Ex2Utils.FORM; // Use Ex2Utils.FORM constant for formulas
-            } else {
-                this.type = Ex2Utils.ERR_FORM_FORMAT; // Use Ex2Utils.ERR_FORM_FORMAT constant for invalid formulas
-            }
+    public void setData(String s) {
+        this.line = s.trim();
+        if (s.startsWith("=")) {
+            this.type = Ex2Utils.FORM; // Formula
         } else {
             try {
-                Double.parseDouble(data); // Try parsing as a number
-                this.type = Ex2Utils.NUMBER; // Use Ex2Utils.NUMBER constant for numeric cells
+                Double.parseDouble(s);
+                this.type = Ex2Utils.NUMBER; // Number
             } catch (NumberFormatException e) {
-                this.type = Ex2Utils.TEXT; // Use Ex2Utils.TEXT constant for text cells
+                this.type = Ex2Utils.TEXT; // Text
             }
         }
     }
 
-    /**
-     * Checks if the given data string is a valid formula.
-     * Valid formulas start with '=' and follow the correct format.
-     *
-     * @param formula The formula string.
-     * @return true if the formula is valid, false otherwise.
-     */
-    private boolean isValidFormula(String formula) {
-        // Use regex to validate formulas. Adjust based on the allowed formats.
-        // Example: formula can be a number, a formula enclosed in parentheses, or a valid operation.
-        return formula.matches("^=[0-9]+(\\.[0-9]+)?$") // Number like =1, =1.2
-                || formula.matches("^=\\([A-Za-z0-9+\\-*/() ]+\\)$") // Parentheses enclosed formula
-                || formula.matches("^=[A-Za-z]+[0-9]+$") // Simple cell reference like =A1, =B2
-                || formula.matches("^=[A-Za-z]+[0-9]+[\\+\\-\\*/][A-Za-z]+[0-9]+$");// Formula operations like =A1+B2
+    @Override
+    public String getData() {
+        return line;
     }
 
     @Override
@@ -74,43 +41,36 @@ public class SCell implements Cell {
     }
 
     @Override
-    public void setType(int type) {
-        this.type = type;
+    public void setType(int t) {
+        this.type = t;
     }
 
     @Override
     public int getOrder() {
-        return order;
+        return 0;
     }
 
     @Override
-    public void setOrder(int order) {
-        this.order = order;
-    }
+    public void setOrder(int t) {}
 
-    /**
-     * Evaluates the cell's value. Handles formulas recursively, detecting circular references.
-     *
-     * @param sheet           The spreadsheet containing the cell.
-     * @param evaluationStack Tracks visited cells to detect cycles.
-     */
     public void evaluate(Ex2Sheet sheet, Set<String> evaluationStack) {
         if (isEvaluated) {
             return; // Skip if already evaluated
         }
 
-        if (evaluationStack.contains(data)) {
-            throw new IllegalArgumentException("Circular reference detected in formula: " + data);
+        if (evaluationStack.contains(line)) {
+            throw new IllegalArgumentException("Circular reference detected in formula: " + line);
         }
 
-        if (data.startsWith("=")) { // Formula handling
-            evaluationStack.add(data);
-            computedValue = evaluateFormula(sheet, data.substring(1), evaluationStack); // Evaluate the formula
+        if (line.startsWith("=")) { // Formula handling
+            evaluationStack.add(line);
+            computedValue = evaluateFormula(sheet, line.substring(1), evaluationStack); // Evaluate the formula
+            line = String.valueOf(computedValue); // Update the line with the computed value
             isEvaluated = true;
-            evaluationStack.remove(data);
+            evaluationStack.remove(line);
         } else {
             try {
-                computedValue = Double.parseDouble(data); // Try parsing as a number
+                computedValue = Double.parseDouble(line); // Try parsing as a number
                 type = Ex2Utils.NUMBER;
             } catch (NumberFormatException e) {
                 type = Ex2Utils.TEXT; // Default to TEXT if parsing fails
@@ -127,39 +87,17 @@ public class SCell implements Cell {
      * @return The result of the formula evaluation.
      */
     private Double evaluateFormula(Ex2Sheet sheet, String formula, Set<String> evaluationStack) {
-        if (formula.matches("[0-9\\+\\-\\*/\\.]+")) { // Simple arithmetic expressions
+        // If it's a simple arithmetic expression or just a value, compute it directly
+        if (formula.matches("[0-9\\+\\-\\*/\\.]+")) {
             return evaluateArithmeticExpression(formula);
         }
 
-        double result = 0.0;
-        String operator = "+"; // Default operator is addition
-
-        // Remove spaces for simpler processing
-        formula = formula.replaceAll("\\s+", "");
-
-        // Tokenize the formula manually
-        StringBuilder token = new StringBuilder();
-        for (int i = 0; i < formula.length(); i++) {
-            char c = formula.charAt(i);
-
-            // If character is an operator, process the previous token and update the operator
-            if ("+-*/".indexOf(c) != -1) {
-                if (token.length() > 0) {
-                    result = processToken(sheet, token.toString(), operator, evaluationStack);
-                    token.setLength(0); // Reset token builder
-                }
-                operator = String.valueOf(c); // Update operator
-            } else {
-                token.append(c); // Append character to token
-            }
+        try {
+            // Delegate the actual formula computation to the computeFormula method
+            return computeFormula(formula, sheet, evaluationStack);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error evaluating formula: " + formula, e);
         }
-
-        // Process the last token
-        if (token.length() > 0) {
-            result = processToken(sheet, token.toString(), operator, evaluationStack);
-        }
-
-        return result;
     }
 
     /**
@@ -177,12 +115,12 @@ public class SCell implements Cell {
             Cell refCell = sheet.get(token);
             if (refCell != null && refCell instanceof SCell) {
                 ((SCell) refCell).evaluate(sheet, evaluationStack); // Evaluate the referenced cell
-                result = applyOperator(result, ((SCell) refCell).getComputedValue(), operator);
+                result = applyOperation(result, ((SCell) refCell).getComputedValue(), operator);
             }
         } else {
             try {
                 double value = Double.parseDouble(token); // Parse as number
-                result = applyOperator(result, value, operator);
+                result = applyOperation(result, value, operator);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid token in formula: " + token);
             }
@@ -209,51 +147,97 @@ public class SCell implements Cell {
                 operator = token;
             } else {
                 double value = Double.parseDouble(token);
-                result = applyOperator(result, value, operator);
+                result = applyOperation(result, value, operator);
             }
         }
         return result;
     }
 
+
     /**
-     * Applies an operator to the current value and a new value.
+     * Computes the result of a formula.
      *
-     * @param current  The current value.
-     * @param value    The new value.
-     * @param operator The operator to apply (+, -, *, /).
-     * @return The result of applying the operator.
+     * @param formula The formula to compute (without the '=' symbol).
+     * @param sheet The spreadsheet to reference cell values.
+     * @param evaluationStack Tracks visited cells to prevent cycles.
+     * @return The computed result as a double.
+     * @throws Exception if the formula is invalid.
      */
-    private double applyOperator(double current, double value, String operator) {
-        switch (operator) {
+    private double computeFormula(String formula, Ex2Sheet sheet, Set<String> evaluationStack) throws Exception {
+        formula = formula.trim();
+
+        // If the formula is just a number without operations, return it directly
+        if (formula.matches("[0-9]+(\\.[0-9]+)?")) {
+            return Double.parseDouble(formula);
+        }
+
+        String[] tokens = formula.split("\\s*([+\\-*/])\\s*"); // Split by operators while keeping operators
+        double result = 0;
+        String operation = "+"; // Default operator to add
+
+        for (String token : tokens) {
+            token = token.trim();
+            if (token.isEmpty()) continue;
+
+            if ("+-*/".contains(token)) {
+                operation = token; // Store the operator
+            } else if (token.matches("[A-Za-z]+[0-9]+")) { // Cell reference
+                Cell referencedCell = sheet.get(token);
+                if (referencedCell == null || referencedCell.getType() == Ex2Utils.TEXT) {
+                    throw new IllegalArgumentException("Invalid cell reference: " + token);
+                }
+
+                SCell referencedSCell = (SCell) referencedCell;
+                referencedSCell.evaluate(sheet, evaluationStack); // Evaluate the referenced cell
+                double value = referencedSCell.getComputedValue();
+                result = applyOperation(result, value, operation); // Apply the operator
+            } else { // Numeric value
+                double value = Double.parseDouble(token);
+                result = applyOperation(result, value, operation); // Apply the operator
+            }
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Applies the given operation to two operands.
+     *
+     * @param currentValue The current accumulated value.
+     * @param newValue The value to be combined.
+     * @param operation The operation to apply (+, -, *, /).
+     * @return The result after applying the operation.
+     */
+    private double applyOperation(double currentValue, double newValue, String operation) {
+        switch (operation) {
             case "+":
-                return current + value;
+                return currentValue + newValue;
             case "-":
-                return current - value;
+                return currentValue - newValue;
             case "*":
-                return current * value;
+                return currentValue * newValue;
             case "/":
-                return current / value;
+                if (newValue == 0) {
+                    throw new ArithmeticException("Division by zero");
+                }
+                return currentValue / newValue;
             default:
-                return current;
+                return newValue; // If no operation is defined, just return the new value
         }
     }
 
     /**
-     * Gets the computed value of the cell (after evaluation).
+     * Returns the computed value of the cell.
      *
-     * @return The computed value, or null if evaluation failed.
+     * @return The computed value of the cell.
      */
-    public Double getComputedValue() {
+    public double getComputedValue() {
         return computedValue;
     }
 
     @Override
     public String toString() {
-        if (isEvaluated) {
-            return computedValue != null ? computedValue.toString() : "Error in evaluation";
-        } else {
-            return data;
-        }
+        return getData();
     }
-
 }
