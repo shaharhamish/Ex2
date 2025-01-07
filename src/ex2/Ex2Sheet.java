@@ -1,39 +1,28 @@
 package assignments.ex2.src.ex2;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.Set;
 
-/**
- * Ex2Sheet represents a spreadsheet, managing cells and their evaluations.
- */
 public class Ex2Sheet implements Sheet {
     private Cell[][] table;
 
-    // Constructor with dimensions
     public Ex2Sheet(int x, int y) {
         table = new SCell[x][y];
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                table[i][j] = new SCell(""); // Initialize with empty SCell
+                table[i][j] = new SCell("");
             }
         }
-        eval(); // Evaluate all cells
+        eval();
     }
 
-    // Default constructor
     public Ex2Sheet() {
         this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
     }
 
     @Override
     public String value(int x, int y) {
-        String ans = Ex2Utils.EMPTY_CELL;
         Cell c = get(x, y);
-        if (c != null) {
-            ans = c.toString();
-        }
-        return ans;
+        return (c != null) ? c.toString() : Ex2Utils.EMPTY_CELL;
     }
 
     @Override
@@ -41,20 +30,18 @@ public class Ex2Sheet implements Sheet {
         return table[x][y];
     }
 
-    // Overloaded get method to handle cell references like "A1", "B2"
     public Cell get(String cords) {
         if (cords == null || !cords.matches("[A-Za-z]+[0-9]+")) {
-            return null; // Invalid reference
+            return null;
         }
 
-        // Convert column (e.g., A -> 0, B -> 1) and row (e.g., 1 -> 0)
         int col = cords.charAt(0) - 'A';
         int row = Integer.parseInt(cords.substring(1)) - 1;
 
         if (isIn(col, row)) {
             return get(col, row);
         }
-        return null;
+        return null; // Return null for invalid references
     }
 
     @Override
@@ -69,18 +56,16 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public void set(int x, int y, String s) {
-        Cell c = new SCell(s);
-        table[x][y] = c;
-        eval(); // Re-evaluate after setting a new cell value
+        table[x][y] = new SCell(s);
+        eval();
     }
 
     @Override
     public void eval() {
-        Set<String> evaluationStack = new HashSet<>();
-        for (int i = 0; i < table.length; i++) {
-            for (int j = 0; j < table[i].length; j++) {
-                if (table[i][j] instanceof SCell) {
-                    ((SCell) table[i][j]).evaluate(this, evaluationStack); // Evaluate each SCell
+        for (Cell[] row : table) {
+            for (Cell cell : row) {
+                if (cell instanceof SCell) {
+                    ((SCell) cell).evaluate(this);
                 }
             }
         }
@@ -93,13 +78,65 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public int[][] depth() {
-        int[][] ans = new int[width()][height()];
-        for (int i = 0; i < width(); i++) {
-            for (int j = 0; j < height(); j++) {
-                ans[i][j] = 0; // Default depth
+        int w = width();
+        int h = height();
+        int[][] ans = new int[w][h];
+
+        // Initialize each cell in the ans array to -1
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                ans[i][j] = -1;
             }
         }
+
+        int depth = 0;    // Current depth level
+        int count = 0;    // Number of cells that have been computed
+        int max = w * h;  // Total number of cells in the table
+        boolean flagC = true;
+
+        // Process cells until all are computed or no progress is made
+        while (count < max && flagC) {
+            flagC = false;
+
+            for (int x = 0; x < w; x++) {
+                for (int y = 0; y < h; y++) {
+                    // If the cell can be computed at this depth
+                    if (canBeComputedNow(x, y, ans)) {
+                        ans[x][y] = depth; // Set its depth
+                        count++;           // Increment the counter
+                        flagC = true;      // Mark that progress was made
+                    }
+                }
+            }
+
+            depth++; // Increment depth for the next level
+        }
+
         return ans;
+    }
+
+    private boolean canBeComputedNow(int x, int y, int[][] ans) {
+        Cell cell = get(x, y);
+        if (cell == null || ans[x][y] != -1) {
+            return false; // Already computed or empty cell
+        }
+
+        String content = cell.toString();
+        if (content.startsWith("=")) {
+            String[] tokens = content.substring(1).split("[^A-Za-z0-9]+");
+            for (String token : tokens) {
+                if (token.matches("[A-Za-z]+[0-9]+")) {
+                    int depX = token.charAt(0) - 'A';
+                    int depY = Integer.parseInt(token.substring(1)) - 1;
+
+                    if (isIn(depX, depY) && ans[depX][depY] == -1) {
+                        return false; // Dependency is not yet computed
+                    }
+                }
+            }
+        }
+
+        return true; // All dependencies are computed
     }
 
     @Override
@@ -134,10 +171,7 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public String eval(int x, int y) {
-        String ans = null;
-        if (get(x, y) != null) {
-            ans = get(x, y).toString();
-        }
-        return ans;
+        Cell cell = get(x, y);
+        return (cell != null) ? cell.toString() : null;
     }
 }
