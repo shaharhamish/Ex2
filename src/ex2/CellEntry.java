@@ -106,9 +106,12 @@ public class CellEntry implements Index2D {
         int columnIndex = x;
         while (columnIndex >= 0) {
             column.insert(0, (char) ('A' + (columnIndex % 26)));
-            columnIndex = columnIndex / 26 - 1;
+            columnIndex = (columnIndex / 26) - 1;
         }
 
-        return column.toString() + (y + 1);
+        // Convert the zero-based row index to one-based for cell notation
+        int rowIndex = y + 1;
+
+        return column.toString() + rowIndex;
     }
 }

@@ -1,14 +1,17 @@
 package assignments.ex2.src.ex2;
 
 public class SCell implements Cell {
-    private String line;
-    private int type;
-    private double computedValue;
-    private boolean isEvaluated = false;
-    private boolean isInCycle = false; // To track self-references
-    private SCell[] dependentCells = new SCell[10]; // Track all dependent cells with an array (fixed size for simplicity)
-    private int dependentCount = 0; // Keep track of how many dependents are in the array
+    private String line; // Raw data or formula in the cell
+    private int type; // Type of the cell (e.g., text, number, formula)
+    private double computedValue; // Evaluated numeric value of the cell
+    private boolean isEvaluated = false; // Evaluation status of the cell
+    private boolean isInCycle = false; // To detect cycles during evaluation
+    private SCell[] dependentCells = new SCell[10]; // Array to track dependent cells
+    private int dependentCount = 0; // Number of dependent cells
+    private int colIndex; // Column index of the cell
+    private int rowIndex; // Row index of the cell
 
+    // Constructor to initialize the cell with given data
     public SCell(String s) {
         setData(s);
     }
@@ -17,41 +20,42 @@ public class SCell implements Cell {
     public void setData(String s) {
         this.line = s.trim();
         this.isEvaluated = false; // Reset evaluation status
-        this.isInCycle = false; // Reset cycle status
+        this.isInCycle = false; // Reset cycle detection status
 
+        // Determine the type of the cell based on its content
         if (line.equals("=")) {
-            // Case where the formula is just "="
-            this.type = Ex2Utils.ERR_FORM_FORMAT; // Invalid formula
-            this.computedValue = 0; // Set value to 0 for consistency
+            if (line.length() == 1)
+                this.type = Ex2Utils.ERR_FORM_FORMAT; // Invalid formula when only "=" is present
+
         } else if (line.startsWith("=")) {
             if (line.length() == 1) {
                 this.type = Ex2Utils.ERR_FORM_FORMAT; // Invalid formula
             } else {
-                this.type = Ex2Utils.FORM;
+                this.type = Ex2Utils.FORM; // Formula type
             }
         } else {
             try {
-                this.computedValue = Double.parseDouble(line);
+                this.computedValue = Double.parseDouble(line); // Attempt to parse as a number
                 this.type = Ex2Utils.NUMBER;
             } catch (NumberFormatException e) {
-                this.type = Ex2Utils.TEXT;
+                this.type = Ex2Utils.TEXT; // Treat as text if parsing fails
             }
         }
     }
 
     @Override
     public String getData() {
-        return line;
+        return line; // Return the raw data or formula in the cell
     }
 
     @Override
     public int getType() {
-        return type;
+        return type; // Return the type of the cell
     }
 
     @Override
     public void setType(int t) {
-        this.type = t;
+        this.type = t; // Update the cell type
     }
 
     @Override
@@ -66,62 +70,79 @@ public class SCell implements Cell {
 
     public void evaluate(Ex2Sheet sheet) {
         if (isEvaluated) {
+            return; // Skip if already evaluated
+        }
+
+        // Check for cyclic references
+        if (isInCycle) {
+            System.err.println("Cyclic reference detected in cell: " + getReference());
+            this.type = Ex2Utils.ERR_CYCLE_FORM; // Mark the cell as having a cycle error
+            this.computedValue = 0;
+            isEvaluated = true;
             return;
         }
 
-        if (line.startsWith("=")) {
-            try {
-                computedValue = evaluateFormula(line.substring(1), sheet);
-                isEvaluated = true;
+        isInCycle = true; // Mark the cell as being evaluated
 
-                // After evaluating the current cell, trigger evaluation for dependent cells
-                for (int i = 0; i < dependentCount; i++) {
-                    dependentCells[i].evaluate(sheet);
-                }
-            } catch (IllegalArgumentException e) {
-                this.type = Ex2Utils.ERR_FORM_FORMAT;
-                computedValue = 0;
-            } catch (ArithmeticException e) {
-                this.type = Ex2Utils.ERR_FORM_FORMAT; // Handle division by zero or invalid operations
+        if (line.equals("=")) {
+            // Handle invalid formula (just "=")
+            this.type = Ex2Utils.ERR_FORM_FORMAT;
+            this.computedValue = 0; // No meaningful computed value
+            isEvaluated = true;
+            isInCycle = false;
+            return;
+        } else if (line.startsWith("=")) {
+            try {
+                computedValue = evaluateFormula(line.substring(1), sheet); // Evaluate the formula
+                this.type = Ex2Utils.FORM; // Set as formula type
+            } catch (ArithmeticException | IllegalArgumentException e) {
+                this.type = Ex2Utils.ERR_FORM_FORMAT; // Handle invalid formulas or operations
                 computedValue = 0;
             }
         } else {
             try {
-                computedValue = Double.parseDouble(line);
-                type = Ex2Utils.NUMBER;
+                computedValue = Double.parseDouble(line); // Parse as a number
+                this.type = Ex2Utils.NUMBER;
             } catch (NumberFormatException e) {
+                this.type = Ex2Utils.TEXT; // Treat as text if parsing fails
                 computedValue = 0;
-                type = Ex2Utils.TEXT;
             }
         }
+
+        isInCycle = false; // Clear the cycle flag after evaluation
+        isEvaluated = true; // Mark as evaluated
+        sheet.eval();
     }
 
+
+    // Evaluate a formula by removing spaces and processing the expression
     private double evaluateFormula(String formula, Ex2Sheet sheet) {
         formula = formula.replaceAll("\\s", ""); // Remove spaces
         return evaluateExpression(formula, sheet);
     }
 
+    // Process a mathematical expression recursively
     private double evaluateExpression(String formula, Ex2Sheet sheet) {
-        double result = 0.0;
-        String operator = "+";
+        double result = 0.0; // Accumulated result of the expression
+        String operator = "+"; // Current operator (default to addition)
         int i = 0;
 
         while (i < formula.length()) {
             char currentChar = formula.charAt(i);
 
             if (currentChar == '(') {
-                // Start of a sub-expression: find the corresponding closing parenthesis
+                // Handle sub-expressions within parentheses
                 int closingParenthesisIndex = findClosingParenthesis(formula, i);
                 String subExpression = formula.substring(i + 1, closingParenthesisIndex);
                 double subResult = evaluateExpression(subExpression, sheet);
                 result = applyOperation(result, subResult, operator);
                 i = closingParenthesisIndex + 1; // Skip past the closing parenthesis
             } else if ("+-*/".indexOf(currentChar) >= 0) {
-                // Operator: set the operator for the next number
+                // Update the operator for the next number
                 operator = String.valueOf(currentChar);
                 i++;
             } else {
-                // Number or cell reference: parse the operand
+                // Parse numbers or cell references
                 StringBuilder operand = new StringBuilder();
                 while (i < formula.length() && (Character.isDigit(formula.charAt(i)) || formula.charAt(i) == '.' || Character.isLetter(formula.charAt(i)))) {
                     operand.append(formula.charAt(i));
@@ -134,8 +155,9 @@ public class SCell implements Cell {
         return result;
     }
 
+    // Find the closing parenthesis matching the opening one
     private int findClosingParenthesis(String formula, int openParenthesisIndex) {
-        int depth = 1;
+        int depth = 1; // Track the depth of nested parentheses
         int i = openParenthesisIndex + 1;
         while (i < formula.length() && depth > 0) {
             char currentChar = formula.charAt(i);
@@ -149,46 +171,42 @@ public class SCell implements Cell {
         return i - 1; // Return the index of the closing parenthesis
     }
 
+    // Parse an operand (number or cell reference)
     private double parseOperand(String operand, Ex2Sheet sheet) {
-        double value = 0.0;
-        // Normalize the cell reference to uppercase (e.g., "a0" becomes "A0")
-        operand = operand.toUpperCase();
+        operand = operand.toUpperCase(); // Normalize to uppercase for consistency
 
-        if (operand.matches("[A-Za-z]+[0-9]+")) { // Cell reference (e.g., A1)
-            int col = convertColumnToIndex(operand.replaceAll("[0-9]", ""));
-            int row = Integer.parseInt(operand.replaceAll("[A-Za-z]", ""));
+        if (operand.matches("[A-Za-z]+[0-9]+")) { // Check if it's a cell reference
+            int col = convertColumnToIndex(operand.replaceAll("[0-9]", "")); // Extract column
+            int row = Integer.parseInt(operand.replaceAll("[A-Za-z]", "")); // Extract row
 
             if (!sheet.isIn(col, row)) {
                 throw new IllegalArgumentException("Invalid cell reference: " + operand);
             }
 
             SCell refCell = (SCell) sheet.get(col, row);
-            if (refCell == this) {
-                throw new IllegalArgumentException("Self-referencing cell detected: " + operand);
-            }
 
-            // Detect cyclic references
-            if (refCell.isInCycle) {
+            if (refCell == this || refCell.isInCycle) {
+                // Detect self-references or cyclic dependencies
+                System.err.println("Cyclic reference detected in cell: " + operand);
                 throw new IllegalArgumentException("Cyclic reference detected: " + operand);
             }
 
-            refCell.isInCycle = true; // Mark this cell as part of the cycle
+            refCell.isInCycle = true; // Mark referenced cell as part of the cycle
             refCell.evaluate(sheet);
-            value = refCell.getComputedValue();
-            refCell.isInCycle = false; // Unmark after evaluation
+            refCell.isInCycle = false;
 
-            // Add this cell as a dependent of the reference
-            refCell.addDependentCell(this);
+            addDependentCell(refCell); // Track dependency
+            return refCell.getComputedValue();
         } else {
             try {
-                value = Double.parseDouble(operand);
+                return Double.parseDouble(operand); // Parse as a number
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid token in formula: " + operand);
             }
         }
-        return value;
     }
 
+    // Apply an operation (+, -, *, /) to the current and new values
     private double applyOperation(double currentValue, double newValue, String operator) {
         switch (operator) {
             case "+":
@@ -207,41 +225,70 @@ public class SCell implements Cell {
         }
     }
 
-    // Converts a column letter (e.g., "A", "B", "C", ...) to a zero-based index (0, 1, 2, ...)
+    // Convert a column label (e.g., "A") to a zero-based index
     private int convertColumnToIndex(String column) {
         int index = 0;
         for (int i = 0; i < column.length(); i++) {
             char c = column.charAt(i);
-            index = index * 26 + (c - 'A' + 1); // Convert letter to its position in the alphabet
+            index = index * 26 + (c - 'A' + 1);
         }
         return index - 1; // Convert to zero-based index
     }
 
     public double getComputedValue() {
-        return computedValue;
+        return computedValue; // Return the evaluated value
     }
 
     @Override
     public String toString() {
         if (type == Ex2Utils.NUMBER) {
-            return String.format("%.1f", computedValue); // Format numeric values as doubles with 1 decimal place
+            return String.format("%.1f", computedValue); // Format numbers with one decimal place
         }
         if (type == Ex2Utils.FORM) {
-            return String.valueOf(computedValue);
+            return String.valueOf(computedValue); // Display computed value for formulas
         }
-        return getData();
+        if (type == Ex2Utils.ERR_FORM_FORMAT) {
+            return "ERR_FORM"; // Explicitly display error for invalid formulas
+        }
+        if (type == Ex2Utils.ERR_CYCLE_FORM){
+            return "ERR_CYCL";
+        }
+        return getData(); // Return raw data for text cells
     }
 
-    // Add this cell as a dependent of another cell
+
+    // Add a dependent cell to the dependency list
     public void addDependentCell(SCell dependentCell) {
-        if (dependentCount < dependentCells.length) {
-            dependentCells[dependentCount++] = dependentCell;
-        } else {
-            // Resize the array if needed (or handle an overflow case)
+        if (dependentCount >= dependentCells.length) {
             SCell[] newDependentCells = new SCell[dependentCells.length * 2];
             System.arraycopy(dependentCells, 0, newDependentCells, 0, dependentCells.length);
             dependentCells = newDependentCells;
-            dependentCells[dependentCount++] = dependentCell;
         }
+        dependentCells[dependentCount++] = dependentCell;
+    }
+
+    // Set the position of the cell in the spreadsheet
+    public void setPosition(int col, int row) {
+        this.colIndex = col;
+        this.rowIndex = row;
+    }
+
+    // Get the cell's reference (e.g., "A1")
+    public String getReference() {
+        StringBuilder colRef = new StringBuilder();
+        int tempCol = colIndex + 1;
+        while (tempCol > 0) {
+            colRef.insert(0, (char) ('A' + (tempCol - 1) % 26));
+            tempCol = (tempCol - 1) / 26;
+        }
+        return colRef.toString() + (rowIndex + 1);
+    }
+    public boolean hasDependencyOn(SCell other) {
+        // Check if this cell depends on another cell
+        if (line.startsWith("=")) {
+            String formula = line.substring(1); // Remove '='
+            return formula.contains(other.getReference()); // Simplified dependency check
+        }
+        return false;
     }
 }
