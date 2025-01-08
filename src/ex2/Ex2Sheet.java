@@ -60,22 +60,36 @@ public class Ex2Sheet implements Sheet {
         return null;
     }
 
-    // Update a cell's data and trigger spreadsheet evaluation
     @Override
     public void set(int x, int y, String s) {
-        if (!isIn(x, y)) return; // Ensure coordinates are within bounds
+        if (!isIn(x, y)) return;
+
+        // Reset all cells' evaluation state
+        for (int i = 0; i < table.length; i++) {
+            for (int j = 0; j < table[0].length; j++) {
+                if (table[i][j] != null) {
+                    table[i][j].isEvaluated = false;
+                }
+            }
+        }
 
         SCell cell = table[x][y];
         if (cell == null) {
             cell = new SCell(s);
-            table[x][y] = cell; // Assign a new cell if it doesn't exist
+            table[x][y] = cell;
         } else {
-            cell.setData(s); // Update the existing cell's data
+            cell.setData(s);
         }
+        cell.setPosition(x, y);
 
-        // Evaluate the current cell and propagate changes to dependent cells
-        cell.evaluate(this);
-        propagateDependencies(cell);
+        // Evaluate all cells to propagate changes and detect cycles
+        for (int i = 0; i < table.length; i++) {
+            for (int j = 0; j < table[0].length; j++) {
+                if (table[i][j] != null && !table[i][j].isEvaluated) {
+                    table[i][j].evaluate(this);
+                }
+            }
+        }
     }
 
     // Propagate changes to cells that depend on the updated cell
