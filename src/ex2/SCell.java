@@ -47,11 +47,16 @@ public class SCell implements Cell {
 
     // Check if a formula is valid
     private boolean isValidFormula(String formula) {
-        formula = formula.replaceAll("\\s", "");
+        formula = formula.replaceAll("\\s", ""); // Remove all whitespace
         if (formula.isEmpty()) return false;
 
+        // Check for unary minus at the beginning
+        if (formula.startsWith("-")) {
+            formula = formula.substring(1); // Remove the unary minus and check the rest
+        }
+
         // Check for basic formula patterns
-        if (formula.matches("^-?\\d+(\\.\\d+)?$")) return true;  // Simple number
+        if (formula.matches("^-?\\d+(\\.\\d+)?$")) return true;  // Simple number (with optional unary minus)
         if (formula.matches("^[A-Z]+\\d+$")) return true;        // Cell reference
 
         // Check parentheses balance and operators
@@ -66,20 +71,17 @@ public class SCell implements Cell {
                 if (!expectOperand) return false;
                 parentheses++;
                 expectOperand = true;
-            }
-            else if (c == ')') {
+            } else if (c == ')') {
                 if (expectOperand) return false;
                 parentheses--;
                 if (parentheses < 0) return false;
                 expectOperator = true;
                 expectOperand = false;
-            }
-            else if ("+-*/".indexOf(c) >= 0) {
+            } else if ("+-*/".indexOf(c) >= 0) {
                 if (expectOperand || !expectOperator) return false;
                 expectOperator = false;
                 expectOperand = true;
-            }
-            else if (Character.isLetterOrDigit(c) || c == '.') {
+            } else if (Character.isLetterOrDigit(c) || c == '.') {
                 if (!expectOperand) return false;
                 while (i < formula.length() &&
                         (Character.isLetterOrDigit(formula.charAt(i)) ||
@@ -89,8 +91,7 @@ public class SCell implements Cell {
                 i--;
                 expectOperator = true;
                 expectOperand = false;
-            }
-            else {
+            } else {
                 return false;
             }
         }
@@ -128,12 +129,10 @@ public class SCell implements Cell {
 
     // Evaluate the cell
     public void evaluate(Ex2Sheet sheet) {
-        // If the cell is already evaluated or has an invalid formula, return
         if (isEvaluated || type == Ex2Utils.ERR_FORM_FORMAT) {
             return;
         }
 
-        // If the cell is already being evaluated, it means we have a cycle
         if (isInCycle) {
             this.type = Ex2Utils.ERR_CYCLE_FORM;
             this.computedValue = 0;
@@ -141,17 +140,13 @@ public class SCell implements Cell {
             return;
         }
 
-        // Mark the cell as being evaluated to detect cycles
         isInCycle = true;
 
-        // Evaluate the cell based on its content
         if (line.startsWith("=")) {
             try {
-                // Evaluate the formula
                 computedValue = evaluateFormula(line.substring(1), sheet);
                 this.type = Ex2Utils.FORM;
             } catch (ArithmeticException | IllegalArgumentException e) {
-                // Handle errors (e.g., division by zero, invalid formula)
                 if (this.type != Ex2Utils.ERR_CYCLE_FORM) {
                     this.type = Ex2Utils.ERR_FORM_FORMAT;
                 }
@@ -159,17 +154,14 @@ public class SCell implements Cell {
             }
         } else {
             try {
-                // If the cell contains a number, parse it
                 computedValue = Double.parseDouble(line);
                 this.type = Ex2Utils.NUMBER;
             } catch (NumberFormatException e) {
-                // If the cell contains text, mark it as TEXT
                 this.type = Ex2Utils.TEXT;
                 this.computedValue = 0;
             }
         }
 
-        // Mark the cell as no longer being evaluated
         isInCycle = false;
         isEvaluated = true;
     }
@@ -193,6 +185,15 @@ public class SCell implements Cell {
             formula = formula.substring(0, start) + value + formula.substring(end + 1);
         }
 
+        // Handle unary minus
+        formula = formula.replaceAll("\\s", ""); // Remove all whitespace
+        if (formula.startsWith("-")) {
+            // If the formula starts with a minus, treat it as a unary minus
+            double value = evaluateExpression(formula.substring(1), sheet);
+            return -value;
+        }
+
+        // Handle binary operations
         double result = 0.0;
         String operator = "+";
         int i = 0;
@@ -233,20 +234,16 @@ public class SCell implements Cell {
     private double parseOperand(String operand, Ex2Sheet sheet) {
         operand = operand.toUpperCase();
 
-        // Check if the operand is a cell reference (e.g., "A1")
         if (operand.matches("[A-Z]+[0-9]+")) {
             int col = convertColumnToIndex(operand.replaceAll("[0-9]", ""));
             int row = Integer.parseInt(operand.replaceAll("[A-Z]", ""));
 
-            // Check if the referenced cell is within bounds
             if (!sheet.isIn(col, row)) {
                 throw new IllegalArgumentException("Invalid cell reference");
             }
 
-            // Get the referenced cell
             SCell refCell = (SCell) sheet.get(col, row);
             if (refCell == this) {
-                // Self-reference detected
                 this.type = Ex2Utils.ERR_CYCLE_FORM;
                 throw new IllegalArgumentException("Self reference detected");
             }
@@ -255,30 +252,23 @@ public class SCell implements Cell {
                 throw new IllegalArgumentException("Referenced cell is empty");
             }
 
-            // Check if the referenced cell is already being evaluated (circular reference)
             if (refCell.isInCycle) {
                 this.type = Ex2Utils.ERR_CYCLE_FORM;
                 refCell.type = Ex2Utils.ERR_CYCLE_FORM;
                 throw new IllegalArgumentException("Circular reference detected");
             }
 
-            // Add the referenced cell as a dependency
             addDependentCell(refCell);
-
-            // Evaluate the referenced cell
             refCell.evaluate(sheet);
 
-            // If the referenced cell has an error, propagate the error
             if (refCell.getType() == Ex2Utils.ERR_CYCLE_FORM ||
                     refCell.getType() == Ex2Utils.ERR_FORM_FORMAT) {
                 throw new IllegalArgumentException("Referenced cell has an error");
             }
 
-            // Return the computed value of the referenced cell
             return refCell.getComputedValue();
         }
 
-        // If the operand is a number, parse it
         try {
             return Double.parseDouble(operand);
         } catch (NumberFormatException e) {
@@ -318,15 +308,23 @@ public class SCell implements Cell {
     public String toString() {
         switch (type) {
             case Ex2Utils.NUMBER:
-                return String.format("%.1f", computedValue);
             case Ex2Utils.FORM:
-                return String.format("%.1f", computedValue);
+                return formatComputedValue();
             case Ex2Utils.ERR_FORM_FORMAT:
                 return "ERR_FORM";
             case Ex2Utils.ERR_CYCLE_FORM:
                 return "ERR_CYCL";
             default:
                 return getData();
+        }
+    }
+
+    // Format the computed value to show up to 8 decimal places if necessary
+    private String formatComputedValue() {
+        if (computedValue % 1 == 0) {
+            return String.format("%.1f", computedValue);
+        } else {
+            return String.format("%.8f", computedValue).replaceAll("0*$", "").replaceAll("\\.$", "");
         }
     }
 

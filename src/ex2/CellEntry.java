@@ -23,7 +23,7 @@ package assignments.ex2.src.ex2;
 public class CellEntry implements Index2D {
 
     // Stores the cell reference as a string, e.g., "A1".
-    private String index;
+    private String  index;
 
     /**
      * Constructs a CellEntry object using a string cell reference.
