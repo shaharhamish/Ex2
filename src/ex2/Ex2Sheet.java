@@ -1,4 +1,3 @@
-// Updated Ex2Sheet.java
 package assignments.ex2.src.ex2;
 
 import java.io.*;
@@ -90,6 +89,9 @@ public class Ex2Sheet implements Sheet {
                 }
             }
         }
+
+        // Propagate changes to dependent cells
+        propagateDependencies(cell);
     }
 
     // Propagate changes to cells that depend on the updated cell
@@ -267,7 +269,6 @@ public class Ex2Sheet implements Sheet {
             }
         }
     }
-
 
     // Evaluate a specific cell and return its value
     @Override

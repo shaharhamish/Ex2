@@ -1,20 +1,22 @@
 package assignments.ex2.src.ex2;
 
 public class SCell implements Cell {
-    private String line;
-    private int type;
-    private double computedValue;
-    public boolean isEvaluated = false;
-    private boolean isInCycle = false;
-    private SCell[] dependentCells = new SCell[10];
-    private int dependentCount = 0;
-    private int colIndex;
-    private int rowIndex;
+    private String line; // The raw content of the cell
+    private int type; // The type of the cell (NUMBER, TEXT, FORM, ERR_FORM_FORMAT, ERR_CYCLE_FORM)
+    private double computedValue; // The computed value of the cell (if applicable)
+    public boolean isEvaluated = false; // Whether the cell has been evaluated
+    private boolean isInCycle = false; // Whether the cell is part of a circular reference
+    private SCell[] dependentCells = new SCell[10]; // Cells that depend on this cell
+    private int dependentCount = 0; // Number of dependent cells
+    private int colIndex; // Column index of the cell
+    private int rowIndex; // Row index of the cell
 
+    // Constructor
     public SCell(String s) {
         setData(s);
     }
 
+    // Set the data of the cell
     @Override
     public void setData(String s) {
         this.line = s.trim();
@@ -43,6 +45,7 @@ public class SCell implements Cell {
         }
     }
 
+    // Check if a formula is valid
     private boolean isValidFormula(String formula) {
         formula = formula.replaceAll("\\s", "");
         if (formula.isEmpty()) return false;
@@ -95,16 +98,19 @@ public class SCell implements Cell {
         return parentheses == 0 && !expectOperand;
     }
 
+    // Get the raw data of the cell
     @Override
     public String getData() {
         return line;
     }
 
+    // Get the type of the cell
     @Override
     public int getType() {
         return type;
     }
 
+    // Set the type of the cell
     @Override
     public void setType(int t) {
         this.type = t;
@@ -116,13 +122,18 @@ public class SCell implements Cell {
     }
 
     @Override
-    public void setOrder(int t) {}
+    public void setOrder(int t) {
 
+    }
+
+    // Evaluate the cell
     public void evaluate(Ex2Sheet sheet) {
+        // If the cell is already evaluated or has an invalid formula, return
         if (isEvaluated || type == Ex2Utils.ERR_FORM_FORMAT) {
             return;
         }
 
+        // If the cell is already being evaluated, it means we have a cycle
         if (isInCycle) {
             this.type = Ex2Utils.ERR_CYCLE_FORM;
             this.computedValue = 0;
@@ -130,13 +141,17 @@ public class SCell implements Cell {
             return;
         }
 
+        // Mark the cell as being evaluated to detect cycles
         isInCycle = true;
 
+        // Evaluate the cell based on its content
         if (line.startsWith("=")) {
             try {
+                // Evaluate the formula
                 computedValue = evaluateFormula(line.substring(1), sheet);
                 this.type = Ex2Utils.FORM;
             } catch (ArithmeticException | IllegalArgumentException e) {
+                // Handle errors (e.g., division by zero, invalid formula)
                 if (this.type != Ex2Utils.ERR_CYCLE_FORM) {
                     this.type = Ex2Utils.ERR_FORM_FORMAT;
                 }
@@ -144,23 +159,28 @@ public class SCell implements Cell {
             }
         } else {
             try {
+                // If the cell contains a number, parse it
                 computedValue = Double.parseDouble(line);
                 this.type = Ex2Utils.NUMBER;
             } catch (NumberFormatException e) {
+                // If the cell contains text, mark it as TEXT
                 this.type = Ex2Utils.TEXT;
                 this.computedValue = 0;
             }
         }
 
+        // Mark the cell as no longer being evaluated
         isInCycle = false;
         isEvaluated = true;
     }
 
+    // Evaluate a formula
     private double evaluateFormula(String formula, Ex2Sheet sheet) {
         formula = formula.replaceAll("\\s", "");
         return evaluateExpression(formula, sheet);
     }
 
+    // Evaluate an expression
     private double evaluateExpression(String formula, Ex2Sheet sheet) {
         // Handle parentheses first
         while (formula.contains("(")) {
@@ -198,6 +218,7 @@ public class SCell implements Cell {
         return result;
     }
 
+    // Find the matching parenthesis
     private int findMatchingParenthesis(String expr, int start) {
         int count = 1;
         for (int i = start + 1; i < expr.length(); i++) {
@@ -208,19 +229,24 @@ public class SCell implements Cell {
         return -1;
     }
 
+    // Parse an operand (either a number or a cell reference)
     private double parseOperand(String operand, Ex2Sheet sheet) {
         operand = operand.toUpperCase();
 
+        // Check if the operand is a cell reference (e.g., "A1")
         if (operand.matches("[A-Z]+[0-9]+")) {
             int col = convertColumnToIndex(operand.replaceAll("[0-9]", ""));
             int row = Integer.parseInt(operand.replaceAll("[A-Z]", ""));
 
+            // Check if the referenced cell is within bounds
             if (!sheet.isIn(col, row)) {
                 throw new IllegalArgumentException("Invalid cell reference");
             }
 
+            // Get the referenced cell
             SCell refCell = (SCell) sheet.get(col, row);
             if (refCell == this) {
+                // Self-reference detected
                 this.type = Ex2Utils.ERR_CYCLE_FORM;
                 throw new IllegalArgumentException("Self reference detected");
             }
@@ -229,24 +255,30 @@ public class SCell implements Cell {
                 throw new IllegalArgumentException("Referenced cell is empty");
             }
 
-            // Check for direct circular reference
-            if (refCell.hasDependencyOn(this)) {
+            // Check if the referenced cell is already being evaluated (circular reference)
+            if (refCell.isInCycle) {
                 this.type = Ex2Utils.ERR_CYCLE_FORM;
                 refCell.type = Ex2Utils.ERR_CYCLE_FORM;
                 throw new IllegalArgumentException("Circular reference detected");
             }
 
+            // Add the referenced cell as a dependency
             addDependentCell(refCell);
+
+            // Evaluate the referenced cell
             refCell.evaluate(sheet);
 
+            // If the referenced cell has an error, propagate the error
             if (refCell.getType() == Ex2Utils.ERR_CYCLE_FORM ||
                     refCell.getType() == Ex2Utils.ERR_FORM_FORMAT) {
                 throw new IllegalArgumentException("Referenced cell has an error");
             }
 
+            // Return the computed value of the referenced cell
             return refCell.getComputedValue();
         }
 
+        // If the operand is a number, parse it
         try {
             return Double.parseDouble(operand);
         } catch (NumberFormatException e) {
@@ -254,6 +286,7 @@ public class SCell implements Cell {
         }
     }
 
+    // Apply an arithmetic operation
     private double applyOperation(double currentValue, double newValue, String operator) {
         switch (operator) {
             case "+": return currentValue + newValue;
@@ -266,6 +299,7 @@ public class SCell implements Cell {
         }
     }
 
+    // Convert a column label (e.g., "A") to its zero-based index
     private int convertColumnToIndex(String column) {
         int index = 0;
         for (int i = 0; i < column.length(); i++) {
@@ -274,10 +308,12 @@ public class SCell implements Cell {
         return index - 1;
     }
 
+    // Get the computed value of the cell
     public double getComputedValue() {
         return computedValue;
     }
 
+    // Convert the cell to a string representation
     @Override
     public String toString() {
         switch (type) {
@@ -294,6 +330,7 @@ public class SCell implements Cell {
         }
     }
 
+    // Add a dependent cell
     public void addDependentCell(SCell dependentCell) {
         if (dependentCount >= dependentCells.length) {
             SCell[] newDependentCells = new SCell[dependentCells.length * 2];
@@ -303,11 +340,13 @@ public class SCell implements Cell {
         dependentCells[dependentCount++] = dependentCell;
     }
 
+    // Set the position of the cell
     public void setPosition(int col, int row) {
         this.colIndex = col;
         this.rowIndex = row;
     }
 
+    // Get the cell reference (e.g., "A1")
     public String getReference() {
         StringBuilder colRef = new StringBuilder();
         int tempCol = colIndex + 1;
@@ -318,6 +357,7 @@ public class SCell implements Cell {
         return colRef.toString() + (rowIndex + 1);
     }
 
+    // Check if this cell depends on another cell
     public boolean hasDependencyOn(SCell other) {
         if (line.startsWith("=")) {
             String formula = line.substring(1);
