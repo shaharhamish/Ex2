@@ -2,11 +2,20 @@ package assignments.ex2.src.SecondPart;
 
 import java.io.*;
 
+/**
+ * Represents a two-dimensional spreadsheet with cells that can hold and evaluate data.
+ * Provides functionalities for setting, retrieving, and evaluating cell values,
+ * as well as loading and saving the spreadsheet's state to/from files.
+ */
 public class Ex2Sheet implements Sheet {
     // Two-dimensional array representing the spreadsheet's cells
     private SCell[][] table;
 
-    // Constructor to initialize the spreadsheet with specified dimensions
+    /**
+     * Constructor to initialize the spreadsheet with specified dimensions.
+     * @param x Number of columns.
+     * @param y Number of rows.
+     */
     public Ex2Sheet(int x, int y) {
         table = new SCell[x][y];
         for (int i = 0; i < x; i++) {
@@ -17,19 +26,32 @@ public class Ex2Sheet implements Sheet {
         eval(); // Evaluate the entire spreadsheet on creation
     }
 
-    // Default constructor initializing with predefined dimensions
+    /**
+     * Default constructor initializing the spreadsheet with predefined dimensions
+     * as specified in Ex2Utils.
+     */
     public Ex2Sheet() {
         this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
     }
 
-    // Retrieve the value of a cell as a string
+    /**
+     * Retrieve the value of a cell as a string.
+     * @param x Column index.
+     * @param y Row index.
+     * @return The value of the cell as a string, or an empty string if the cell is null.
+     */
     @Override
     public String value(int x, int y) {
         Cell c = get(x, y);
         return (c != null) ? c.toString() : Ex2Utils.EMPTY_CELL; // Return empty if cell is null
     }
 
-    // Retrieve a cell object given its coordinates
+    /**
+     * Retrieve a cell object given its coordinates.
+     * @param x Column index.
+     * @param y Row index.
+     * @return The cell object, or null if the coordinates are out of bounds.
+     */
     @Override
     public Cell get(int x, int y) {
         if (isIn(x, y)) {
@@ -38,7 +60,11 @@ public class Ex2Sheet implements Sheet {
         return null;
     }
 
-    // Retrieve a cell object given its string-based coordinates (e.g., "A1")
+    /**
+     * Retrieve a cell object given its string-based coordinates (e.g., "A1").
+     * @param cords String representing the cell coordinates.
+     * @return The corresponding cell object, or null if the coordinates are invalid.
+     */
     public SCell get(String cords) {
         if (cords == null || !cords.matches("[A-Za-z]+[0-9]+")) {
             return null;
@@ -59,6 +85,12 @@ public class Ex2Sheet implements Sheet {
         return null;
     }
 
+    /**
+     * Set the value of a cell and re-evaluate the spreadsheet.
+     * @param x Column index.
+     * @param y Row index.
+     * @param s New value for the cell.
+     */
     @Override
     public void set(int x, int y, String s) {
         if (!isIn(x, y)) return;
@@ -94,7 +126,10 @@ public class Ex2Sheet implements Sheet {
         propagateDependencies(cell);
     }
 
-    // Propagate changes to cells that depend on the updated cell
+    /**
+     * Propagate changes to cells that depend on the updated cell.
+     * @param updatedCell The cell that was updated.
+     */
     private void propagateDependencies(SCell updatedCell) {
         for (int x = 0; x < table.length; x++) {
             for (int y = 0; y < table[0].length; y++) {
@@ -106,7 +141,9 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    // Evaluate all cells in the spreadsheet
+    /**
+     * Evaluate all cells in the spreadsheet.
+     */
     @Override
     public void eval() {
         for (SCell[] row : table) {
@@ -118,25 +155,39 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    // Check if the given coordinates are within bounds
+    /**
+     * Check if the given coordinates are within bounds.
+     * @param xx Column index.
+     * @param yy Row index.
+     * @return True if the coordinates are within bounds, false otherwise.
+     */
     @Override
     public boolean isIn(int xx, int yy) {
         return xx >= 0 && yy >= 0 && xx < table.length && yy < table[0].length;
     }
 
-    // Get the width of the spreadsheet
+    /**
+     * Get the width of the spreadsheet.
+     * @return Number of columns in the spreadsheet.
+     */
     @Override
     public int width() {
         return table.length;
     }
 
-    // Get the height of the spreadsheet
+    /**
+     * Get the height of the spreadsheet.
+     * @return Number of rows in the spreadsheet.
+     */
     @Override
     public int height() {
         return table[0].length;
     }
 
-    // Determine the computation depth of each cell in the spreadsheet
+    /**
+     * Determine the computation depth of each cell in the spreadsheet.
+     * @return A two-dimensional array containing the computation depth of each cell.
+     */
     @Override
     public int[][] depth() {
         int w = width();
@@ -173,7 +224,13 @@ public class Ex2Sheet implements Sheet {
         return ans;
     }
 
-    // Check if a cell can be computed at the current depth
+    /**
+     * Check if a cell can be computed at the current depth.
+     * @param x Column index.
+     * @param y Row index.
+     * @param ans Array storing the current computation depths.
+     * @return True if the cell can be computed now, false otherwise.
+     */
     private boolean canBeComputedNow(int x, int y, int[][] ans) {
         SCell cell = table[x][y];
         if (cell == null || ans[x][y] != -1) {
@@ -218,7 +275,11 @@ public class Ex2Sheet implements Sheet {
         return true;
     }
 
-    // Convert a column label (e.g., "A") to its zero-based index
+    /**
+     * Convert a column label (e.g., "A") to its zero-based index.
+     * @param column Column label.
+     * @return Zero-based index of the column.
+     */
     private int convertColumnToIndex(String column) {
         int index = 0;
         for (int i = 0; i < column.length(); i++) {
@@ -227,7 +288,11 @@ public class Ex2Sheet implements Sheet {
         return index - 1;
     }
 
-    // Load spreadsheet data from a file
+    /**
+     * Load spreadsheet data from a file.
+     * @param fileName Name of the file to load from.
+     * @throws IOException If an error occurs while reading the file.
+     */
     @Override
     public void load(String fileName) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
@@ -254,7 +319,11 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    // Save spreadsheet data to a file
+    /**
+     * Save spreadsheet data to a file.
+     * @param fileName Name of the file to save to.
+     * @throws IOException If an error occurs while writing to the file.
+     */
     @Override
     public void save(String fileName) throws IOException {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName))) {
@@ -270,14 +339,21 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    // Evaluate a specific cell and return its value
+    /**
+     * Evaluate a specific cell and return its value.
+     * @param x Column index.
+     * @param y Row index.
+     * @return The evaluated value of the cell, or null if the cell is null.
+     */
     @Override
     public String eval(int x, int y) {
         Cell cell = get(x, y);
         return (cell != null) ? cell.toString() : null;
     }
 
-    // Print the entire spreadsheet to the console
+    /**
+     * Print the entire spreadsheet to the console.
+     */
     public void printSheet() {
         for (int y = 0; y < table[0].length; y++) {
             for (int x = 0; x < table.length; x++) {
