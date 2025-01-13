@@ -12,20 +12,6 @@ This project focuses on building a basic version of a
 The following diagram shows the relationship between the `Cell` class and the `Spreadsheet` class.
 ![img.png](img.png)
 
-# Second part:
-# Ex2: Foundations of Object-Oriented and Recursion
-
-## Introduction
-This project focuses on building a basic version of a **Spreadsheet**, designed to enhance understanding of:
-- Object-Oriented Design principles.
-- Recursive problem solving.
-- Algorithmic thinking for dependencies and cycles.
-
-### Class Diagram: Cell and Spreadsheet
-The following diagram shows the relationship between the `Cell` class and the `Spreadsheet` class:
-![Class Diagram](img.png)
-
----
 # Second part
 
 # Spreadsheet Application
@@ -173,4 +159,4 @@ Where:
 - Numbers can be integers or decimals
 - Empty cells are treated as text cells
 
-![README Part 2.png](README Part 2.png)
+![READMEPart2.png](READMEPart2.png)
