@@ -31,8 +31,9 @@ class SCellTest {
     @Test
     void testSelfReferenceDetection() {
         Ex2Sheet sheet = new Ex2Sheet(3, 3);
-        SCell cell = new SCell("=A1");
         sheet.set(0, 0, "=A1");
+        sheet.set(1, 0, "=A0");
+        SCell cell = (SCell) sheet.get(0, 0);
         assertEquals(Ex2Utils.ERR_CYCLE_FORM, cell.getType());
     }
 

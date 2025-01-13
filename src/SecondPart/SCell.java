@@ -14,7 +14,7 @@ public class SCell implements Cell {
     public boolean isEvaluated = false;
 
     // Whether the cell is part of a circular reference.
-    private boolean isInCycle = false;
+    public boolean isInCycle = false;
 
     // Cells that depend on this cell.
     private SCell[] dependentCells = new SCell[10];
@@ -43,32 +43,40 @@ public class SCell implements Cell {
      */
     @Override
     public void setData(String s) {
+        // Trim and set the raw content
         this.line = s.trim();
-        this.isEvaluated = false;
-        this.isInCycle = false;
 
+        // Clear the evaluation state and dependencies
+        clearEvaluationState();
+        this.isEvaluated = false; // Reset evaluation status
+        this.isInCycle = false;  // Reset cycle status
+
+        // If the content is empty, set type to TEXT
         if (line.isEmpty()) {
             this.type = Ex2Utils.TEXT;
             return;
         }
 
+        // If the content starts with an equal sign (=), it's a formula
         if (line.startsWith("=")) {
-            if (isValidFormula(line.substring(1))) {
-                this.type = Ex2Utils.FORM;
+            String formula = line.substring(1); // Extract the formula part
+            if (isValidFormula(formula)) {
+                this.type = Ex2Utils.FORM; // Mark as a valid formula
             } else {
-                this.type = Ex2Utils.ERR_FORM_FORMAT;
+                this.type = Ex2Utils.ERR_FORM_FORMAT; // Mark as invalid formula format
             }
             return;
         }
 
+        // Try to parse the value as a number
         try {
-            this.computedValue = Double.parseDouble(line);
-            this.type = Ex2Utils.NUMBER;
+            this.computedValue = Double.parseDouble(line); // Attempt to parse the content as a number
+            this.type = Ex2Utils.NUMBER; // If successful, mark as a NUMBER
         } catch (NumberFormatException e) {
+            // If it fails, mark it as TEXT
             this.type = Ex2Utils.TEXT;
         }
     }
-
     /**
      * Clears the evaluation state of the cell and all its dependent cells.
      * This method is useful when a cell's value changes from an error state to a valid state.
@@ -197,8 +205,23 @@ public class SCell implements Cell {
             this.type = Ex2Utils.ERR_CYCLE_FORM;
             this.computedValue = 0;
             isEvaluated = true;
-            propagateCycleError(); // Propagate the error to dependent cells
+            propagateCycleError(); // Propagate the error to all dependent cells
             return;
+        }
+
+// Check for circular references caused by this cell’s dependencies
+        if (line.startsWith("=")) {
+            try {
+                computedValue = evaluateFormula(line.substring(1), sheet);
+                this.type = Ex2Utils.FORM;
+            } catch (IllegalArgumentException e) {
+                if (this.type == Ex2Utils.ERR_CYCLE_FORM) {
+                    propagateCycleError(); // Ensure all dependent cells are marked
+                } else {
+                    this.type = Ex2Utils.ERR_FORM_FORMAT;
+                }
+                this.computedValue = 0;
+            }
         }
 
         isInCycle = true;
@@ -351,6 +374,18 @@ public class SCell implements Cell {
                 throw new IllegalArgumentException("Circular reference detected");
             }
 
+            if (refCell == this) {
+                this.type = Ex2Utils.ERR_CYCLE_FORM;
+                throw new IllegalArgumentException("Self-reference detected");
+            }
+
+// Recursive dependency check: Does the referenced cell depend on this cell?
+            if (refCell.hasDependencyOn(this)) {
+                this.type = Ex2Utils.ERR_CYCLE_FORM;
+                refCell.type = Ex2Utils.ERR_CYCLE_FORM; // Mark both cells with cycle error
+                throw new IllegalArgumentException("Circular reference detected");
+            }
+
             addDependentCell(refCell);
             refCell.evaluate(sheet);
 
@@ -487,9 +522,14 @@ public class SCell implements Cell {
 
     // Check if this cell depends on another cell
     public boolean hasDependencyOn(SCell other) {
-        if (line.startsWith("=")) {
-            String formula = line.substring(1);
-            return formula.contains(other.getReference());
+        if (this == other) {
+            return true; // Direct self-dependency
+        }
+        for (int i = 0; i < dependentCount; i++) {
+            SCell dependent = dependentCells[i];
+            if (dependent != null && dependent.hasDependencyOn(other)) {
+                return true; // Indirect dependency found
+            }
         }
         return false;
     }

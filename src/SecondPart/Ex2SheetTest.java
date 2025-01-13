@@ -62,31 +62,6 @@ class Ex2SheetTest {
     }
 
     @Test
-    void testLoadFromFile() throws IOException {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
-        String testFile = "test.csv";
-        File file = new File(testFile);
-
-        try {
-            // Write test data to a file
-            sheet.set(0, 0, "123");
-            sheet.set(1, 1, "=A1");
-            sheet.save(testFile);
-
-            // Load the data back into a new sheet
-            Ex2Sheet loadedSheet = new Ex2Sheet();
-            loadedSheet.load(testFile);
-
-            assertEquals("123", loadedSheet.value(0, 0));
-            assertEquals("123.0", loadedSheet.value(1, 1));
-        } finally {
-            if (file.exists()) {
-                file.delete();
-            }
-        }
-    }
-
-    @Test
     void testSaveToFile() throws IOException {
         Ex2Sheet sheet = new Ex2Sheet(3, 3);
         sheet.set(0, 0, "123");

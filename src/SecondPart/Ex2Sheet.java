@@ -147,6 +147,7 @@ public class Ex2Sheet implements Sheet {
             for (int j = 0; j < table[0].length; j++) {
                 if (table[i][j] != null) {
                     table[i][j].isEvaluated = false;
+                    table[i][j].isInCycle = false;
                 }
             }
         }
