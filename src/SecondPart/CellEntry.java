@@ -1,4 +1,4 @@
-package assignments.ex2.src.ex2;
+package assignments.ex2.src.SecondPart;
 
 /**
  * The CellEntry class represents a cell in a spreadsheet-like structure.

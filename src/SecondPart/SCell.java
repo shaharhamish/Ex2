@@ -1,4 +1,4 @@
-package assignments.ex2.src.ex2;
+package assignments.ex2.src.SecondPart;
 
 public class SCell implements Cell {
     private String line; // The raw content of the cell
@@ -124,7 +124,6 @@ public class SCell implements Cell {
 
     @Override
     public void setOrder(int t) {
-
     }
 
     // Evaluate the cell
@@ -133,13 +132,16 @@ public class SCell implements Cell {
             return;
         }
 
+        // If the cell is already being evaluated, it's part of a cycle
         if (isInCycle) {
             this.type = Ex2Utils.ERR_CYCLE_FORM;
             this.computedValue = 0;
             isEvaluated = true;
+            propagateCycleError(); // Propagate the error to dependent cells
             return;
         }
 
+        // Mark the cell as being evaluated
         isInCycle = true;
 
         if (line.startsWith("=")) {
@@ -162,8 +164,22 @@ public class SCell implements Cell {
             }
         }
 
+        // Mark the cell as evaluated and no longer in a cycle
         isInCycle = false;
         isEvaluated = true;
+    }
+
+    // Propagate ERR_CYCL to all dependent cells
+    private void propagateCycleError() {
+        for (int i = 0; i < dependentCount; i++) {
+            SCell dependentCell = dependentCells[i];
+            if (dependentCell != null && dependentCell.getType() != Ex2Utils.ERR_CYCLE_FORM) {
+                dependentCell.type = Ex2Utils.ERR_CYCLE_FORM;
+                dependentCell.computedValue = 0;
+                dependentCell.isEvaluated = true;
+                dependentCell.propagateCycleError(); // Recursively propagate the error
+            }
+        }
     }
 
     // Evaluate a formula
@@ -252,6 +268,7 @@ public class SCell implements Cell {
                 throw new IllegalArgumentException("Referenced cell is empty");
             }
 
+            // If the referenced cell is already being evaluated, it's a circular reference
             if (refCell.isInCycle) {
                 this.type = Ex2Utils.ERR_CYCLE_FORM;
                 refCell.type = Ex2Utils.ERR_CYCLE_FORM;

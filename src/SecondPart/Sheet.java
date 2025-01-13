@@ -1,4 +1,4 @@
-package assignments.ex2.src.ex2;
+package assignments.ex2.src.SecondPart;
 
 import java.io.IOException;
 

@@ -1,7 +1,4 @@
-package assignments.ex2.src.ex2;
-
-import java.awt.*;
-import java.io.IOException;
+package assignments.ex2.src.SecondPart;
 
 import java.awt.*;
 import java.io.IOException;
