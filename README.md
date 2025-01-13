@@ -172,3 +172,5 @@ Where:
 - Cell references are case-insensitive
 - Numbers can be integers or decimals
 - Empty cells are treated as text cells
+
+![README Part 2.png](README Part 2.png)
