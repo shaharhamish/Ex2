@@ -125,7 +125,6 @@ public class Ex2Sheet implements Sheet {
         // Propagate changes to dependent cells
         propagateDependencies(cell);
     }
-
     /**
      * Propagate changes to cells that depend on the updated cell.
      * @param updatedCell The cell that was updated.

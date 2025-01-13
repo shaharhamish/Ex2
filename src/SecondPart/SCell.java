@@ -212,6 +212,52 @@ public class SCell implements Cell {
         isInCycle = false;
         isEvaluated = true;
     }
+    private boolean hasDirectCycle(String formula, Ex2Sheet sheet) {
+        formula = formula.replaceAll("\\s", "");
+        // Check each potential cell reference in the formula
+        int i = 0;
+        while (i < formula.length()) {
+            if (Character.isLetter(formula.charAt(i))) {
+                StringBuilder ref = new StringBuilder();
+                // Extract potential cell reference
+                while (i < formula.length() &&
+                        (Character.isLetter(formula.charAt(i)) ||
+                                Character.isDigit(formula.charAt(i)))) {
+                    ref.append(formula.charAt(i));
+                    i++;
+                }
+
+                String cellRef = ref.toString();
+                if (cellRef.matches("[A-Z]+[0-9]+")) {
+                    try {
+                        int col = convertColumnToIndex(cellRef.replaceAll("[0-9]", ""));
+                        int row = Integer.parseInt(cellRef.replaceAll("[A-Z]", "")) - 1;
+
+                        if (sheet.isIn(col, row)) {
+                            SCell refCell = (SCell) sheet.get(col, row);
+                            if (refCell != null && refCell != this) {
+                                // Check if referenced cell depends on this cell
+                                if (refCell.hasDependencyOn(this)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        // Invalid cell reference, continue checking
+                    }
+                }
+            }
+            i++;
+        }
+        return false;
+    }
+
+    private void markCycleError() {
+        this.type = Ex2Utils.ERR_CYCLE_FORM;
+        this.computedValue = 0;
+        this.isEvaluated = true;
+        propagateCycleError();
+    }
 
     /**
      * Propagates the cycle error (ERR_CYCL) to all dependent cells.
@@ -361,8 +407,7 @@ public class SCell implements Cell {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid numeric value: " + operand);
         }
-    }
-    /**
+    }    /**
      * Applies an arithmetic operation (+, -, *, /) to two values.
      * @param currentValue The current value before the operation.
      * @param newValue The new value to apply the operation to.
