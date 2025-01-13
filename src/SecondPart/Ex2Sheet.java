@@ -95,15 +95,6 @@ public class Ex2Sheet implements Sheet {
     public void set(int x, int y, String s) {
         if (!isIn(x, y)) return;
 
-        // Reset all cells' evaluation state
-        for (int i = 0; i < table.length; i++) {
-            for (int j = 0; j < table[0].length; j++) {
-                if (table[i][j] != null) {
-                    table[i][j].isEvaluated = false;
-                }
-            }
-        }
-
         SCell cell = table[x][y];
         if (cell == null) {
             cell = new SCell(s);
@@ -112,6 +103,12 @@ public class Ex2Sheet implements Sheet {
             cell.setData(s);
         }
         cell.setPosition(x, y);
+
+        // Clear evaluation states of the cell and its dependents
+        cell.clearEvaluationState();
+
+        // Reset all cells' evaluation state
+        resetEvaluationState();
 
         // Evaluate all cells to propagate changes and detect cycles
         for (int i = 0; i < table.length; i++) {
@@ -125,6 +122,7 @@ public class Ex2Sheet implements Sheet {
         // Propagate changes to dependent cells
         propagateDependencies(cell);
     }
+
     /**
      * Propagate changes to cells that depend on the updated cell.
      * @param updatedCell The cell that was updated.
@@ -134,7 +132,21 @@ public class Ex2Sheet implements Sheet {
             for (int y = 0; y < table[0].length; y++) {
                 SCell cell = table[x][y];
                 if (cell != null && cell.hasDependencyOn(updatedCell)) {
+                    cell.isEvaluated = false; // Reset the evaluation state of dependent cells
                     cell.evaluate(this); // Re-evaluate dependent cells
+                }
+            }
+        }
+    }
+
+    /**
+     * Reset the evaluation state of all cells in the spreadsheet.
+     */
+    private void resetEvaluationState() {
+        for (int i = 0; i < table.length; i++) {
+            for (int j = 0; j < table[0].length; j++) {
+                if (table[i][j] != null) {
+                    table[i][j].isEvaluated = false;
                 }
             }
         }
